@@ -4,6 +4,7 @@ use std::time::Duration;
 use std::str::FromStr;
 
 const PSEUDO_FS_PATH: &str = "/sys/class/power_supply/";
+const TLP_THRESHOLD_PERCENTAGE: f32 = 0.8;
 
 /// Battery status enum. 'Passive' denotes the 'Unknown' state provided by sysfs
 /// when TLP enforces a threshold
@@ -124,7 +125,8 @@ fn calc_time(bats: &Vec<Battery>, stat: &Status) -> Duration {
             Duration::new((((total_current_charge as f32) / (total_draw as f32)) * 3600f32) as u64, 0)
         }
         Status::Charging => {
-            Duration::new((((total_max_charge as f32 - total_current_charge as f32) / (total_draw as f32)) * 3600f32) as u64, 0)
+            Duration::new(((((total_max_charge as f32 * TLP_THRESHOLD_PERCENTAGE) - total_current_charge as f32)
+                / (total_draw as f32)) * 3600f32) as u64, 0)
         }
     }
 }

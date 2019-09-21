@@ -7,6 +7,7 @@ Personally used with i3blocks under i3.
 ## Features
 - Uses sysfs for gathering batteries and values on these
 - Calculates time-to-depleted and time-to-full from current power-draw
+- Takes battery-thresholds, such as [TLP](https://github.com/linrunner/TLP), into account when calculating time-to-_full_. Defaults to 80%.
 - Omits time-to-* when passive (specifically when sysfs delivers a status of `Unknown`)
 
 ## Usage

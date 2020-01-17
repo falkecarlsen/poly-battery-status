@@ -1,7 +1,9 @@
 use std::fs;
+use std::env;
 use regex::Regex;
 use std::time::Duration;
 use std::str::FromStr;
+use std::env::Args;
 
 const PSEUDO_FS_PATH: &str = "/sys/class/power_supply/";
 const TLP_THRESHOLD_PERCENTAGE: f32 = 0.8;
@@ -34,7 +36,32 @@ struct Battery {
 
 fn main() {
     let config = get_configuration();
+
+    // Copy percentage for later use
+    let percentage = &config.percentage * 100 as f32;
+
     print_status(config);
+
+    let mut args = env::args();
+    // If arguments are supplied
+    if args.len() > 1 {
+        // Consume first argument being current program
+        args.next().unwrap();
+
+        // Check that arguments exist after assumed threshold
+        if args.len() > 1 && percentage <= args.next().unwrap().parse().expect("Could not parse threshold") {
+            external_command(args);
+        }
+    }
+}
+
+// Execute external command from args supplied
+fn external_command(mut args: Args) {
+    use std::process::Command;
+    Command::new(args.next().unwrap())
+        .args(args)
+        .output()
+        .expect("Failed to execute external command");
 }
 
 /// Print a formatted status-line string
@@ -163,6 +190,7 @@ fn get_status(bat: &String) -> Status {
     let stat = raw_status.trim();
     match stat {
         "Unknown" => { Status::Passive }
+        "Full" => { Status::Passive }
         "Charging" => { Status::Charging }
         "Discharging" => { Status::Discharging }
         _ => {

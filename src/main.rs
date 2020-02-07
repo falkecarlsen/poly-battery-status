@@ -4,7 +4,7 @@ use std::time::Duration;
 use std::str::FromStr;
 
 const PSEUDO_FS_PATH: &str = "/sys/class/power_supply/";
-const TLP_THRESHOLD_PERCENTAGE: f32 = 0.8;
+const TLP_THRESHOLD_PERCENTAGE: f32 = 1.0;
 
 /// Battery status enum. 'Passive' denotes the 'Unknown' state provided by sysfs
 /// when TLP enforces a threshold
@@ -163,6 +163,7 @@ fn get_status(bat: &String) -> Status {
     let stat = raw_status.trim();
     match stat {
         "Unknown" => { Status::Passive }
+        "Full" => {Status::Passive}
         "Charging" => { Status::Charging }
         "Discharging" => { Status::Discharging }
         _ => {

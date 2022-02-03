@@ -190,6 +190,7 @@ fn get_status(bat: &String) -> Status {
     let stat = raw_status.trim();
     match stat {
         "Unknown" => { Status::Passive }
+        "Not charging" => { Status::Passive}
         "Full" => { Status::Passive }
         "Charging" => { Status::Charging }
         "Discharging" => { Status::Discharging }

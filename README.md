@@ -2,7 +2,7 @@
 Generates a pretty status-bar string for multi-battery systems on Linux. 
 Written in Rust and should<sup>TM</sup> work with _n_ batteries. 
 
-Personally used with i3blocks under i3.
+Personally used with i3 (i3blocks) and sway (i3blocks).
 
 ## Features
 - Uses sysfs for gathering batteries and values on these

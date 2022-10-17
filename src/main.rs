@@ -6,7 +6,6 @@ use std::str::FromStr;
 use std::env::Args;
 
 const PSEUDO_FS_PATH: &str = "/sys/class/power_supply/";
-const TLP_THRESHOLD_PERCENTAGE: f32 = 0.8;
 
 /// Battery status enum. 'Passive' denotes the 'Unknown' state provided by sysfs
 /// when TLP enforces a threshold
@@ -32,6 +31,8 @@ struct Battery {
     max_charge: u32,
     // Unit: mW
     power_draw: u32,
+
+    tlp_threshold: f32,
 }
 
 fn main() {
@@ -109,6 +110,7 @@ fn get_configuration() -> Configuration {
                     max_charge: get_max_charge(&battery_name),
                     status: get_status(&battery_name),
                     power_draw: get_power_draw(&battery_name),
+                    tlp_threshold: get_tlp_threshold(&battery_name),
                 });
             }
         }
@@ -142,7 +144,7 @@ fn get_configuration() -> Configuration {
 /// Calculate time-to-completion based on current values
 fn calc_time(bats: &Vec<Battery>, stat: &Status) -> Duration {
     let total_current_charge: u32 = bats.iter().map(|x| x.current_charge).sum();
-    let total_max_charge: u32 = bats.iter().map(|x| x.max_charge).sum();
+    let total_max_charge: u32 = bats.iter().map(|x| ((x.max_charge as f32) * x.tlp_threshold) as u32).sum();
     let total_draw: u32 = bats.iter().map(|x| x.power_draw).sum();
     match stat {
         Status::Passive => {
@@ -152,7 +154,7 @@ fn calc_time(bats: &Vec<Battery>, stat: &Status) -> Duration {
             Duration::new((((total_current_charge as f32) / (total_draw as f32)) * 3600f32) as u64, 0)
         }
         Status::Charging => {
-            Duration::new(((((total_max_charge as f32 * TLP_THRESHOLD_PERCENTAGE) - total_current_charge as f32)
+            Duration::new((((total_max_charge as f32 - total_current_charge as f32)
                 / (total_draw as f32)) * 3600f32) as u64, 0)
         }
     }
@@ -182,6 +184,11 @@ fn get_max_charge(bat: &String) -> u32 {
 fn get_power_draw(bat: &String) -> u32 {
     let power_draw = fs::read_to_string(format!("{}{}/power_now", PSEUDO_FS_PATH, bat)).unwrap();
     return u32::from_str(power_draw.trim()).unwrap();
+}
+
+fn get_tlp_threshold(bat: &String) -> f32 {
+    let tlp_threshold = fs::read_to_string(format!("{}{}/charge_stop_threshold", PSEUDO_FS_PATH, bat)).unwrap();
+    return f32::from_str(tlp_threshold.trim()).unwrap() / 100f32;
 }
 
 /// Return current status of given battery

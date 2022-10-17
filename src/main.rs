@@ -31,7 +31,7 @@ struct Battery {
     max_charge: u32,
     // Unit: mW
     power_draw: u32,
-
+    // Charge threshold percentage
     tlp_threshold: f32,
 }
 
@@ -144,8 +144,10 @@ fn get_configuration() -> Configuration {
 /// Calculate time-to-completion based on current values
 fn calc_time(bats: &Vec<Battery>, stat: &Status) -> Duration {
     let total_current_charge: u32 = bats.iter().map(|x| x.current_charge).sum();
-    let total_max_charge: u32 = bats.iter().map(|x| ((x.max_charge as f32) * x.tlp_threshold) as u32).sum();
+    let total_max_charge: u32 = bats.iter().map(|x| x.max_charge).sum();
     let total_draw: u32 = bats.iter().map(|x| x.power_draw).sum();
+    // Average of charge thresholds, if asymmetrical multi-battery setup
+    let tlp_threshold: f32 = bats.iter().map(|x| x.tlp_threshold).sum::<f32>() / bats.len() as f32;
     match stat {
         Status::Passive => {
             Duration::new(0, 0)
@@ -154,8 +156,9 @@ fn calc_time(bats: &Vec<Battery>, stat: &Status) -> Duration {
             Duration::new((((total_current_charge as f32) / (total_draw as f32)) * 3600f32) as u64, 0)
         }
         Status::Charging => {
-            Duration::new((((total_max_charge as f32 - total_current_charge as f32)
-                / (total_draw as f32)) * 3600f32) as u64, 0)
+            Duration::new(((
+                (total_max_charge as f32 * tlp_threshold) - total_current_charge as f32)
+                / (total_draw as f32) * 3600f32) as u64, 0)
         }
     }
 }
